@@ -1,0 +1,59 @@
+import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.Iterator;
+
+public class ExcelReader {
+
+    public static HashMap<Integer, HashMap<String, String>> readExcelFile(String filePath) {
+        HashMap<Integer, HashMap<String, String>> dataMap = new HashMap<>();
+
+        try (FileInputStream fis = new FileInputStream(filePath); 
+             Workbook workbook = new XSSFWorkbook(fis)) {
+
+            Sheet sheet = workbook.getSheetAt(0);  // Reading the first sheet
+            Iterator<Row> rowIterator = sheet.iterator();
+            Row headerRow = rowIterator.next();  // Assuming first row is header
+
+            int rowCount = 0;
+            while (rowIterator.hasNext()) {
+                Row currentRow = rowIterator.next();
+                HashMap<String, String> rowData = new HashMap<>();
+
+                for (Cell cell : currentRow) {
+                    String header = headerRow.getCell(cell.getColumnIndex()).toString();
+                    String cellValue = getCellValueAsString(cell);
+                    rowData.put(header, cellValue);
+                }
+                dataMap.put(rowCount++, rowData);
+            }
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return dataMap;
+    }
+
+    // Helper method to convert cell values to String
+    private static String getCellValueAsString(Cell cell) {
+        switch (cell.getCellType()) {
+            case STRING:
+                return cell.getStringCellValue();
+            case NUMERIC:
+                if (DateUtil.isCellDateFormatted(cell)) {
+                    return cell.getDateCellValue().toString();
+                } else {
+                    return String.valueOf(cell.getNumericCellValue());
+                }
+            case BOOLEAN:
+                return String.valueOf(cell.getBooleanCellValue());
+            case FORMULA:
+                return cell.getCellFormula();
+            default:
+                return "";
+        }
+    }
+}
